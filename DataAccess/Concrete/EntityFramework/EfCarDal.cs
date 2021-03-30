@@ -1,69 +1,32 @@
-﻿using DataAccess.Abstrack;
+﻿using Core.DateAccess.EntityFramework;
+using DataAccess.Abstrack;
 using Entities.Concrete;
-using Microsoft.EntityFrameworkCore;
+using Entities.DTOs;
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Linq.Expressions;
 using System.Text;
 
 namespace DataAccess.Concrete.EntityFramework
 {
-    public class EfCarDal : ICarDal
+    public class EfCarDal : EfEntityRepositoryBase<Car, CarRentalContext>, ICarDal
     {
-        public void Add(Car entity)
-        {
-            if (entity.description.Length >= 2 && entity.dailyPrice >0)
-            {
-                using (CarRentalContext context = new CarRentalContext())
-                {
-                    var addedEntity = context.Entry(entity);
-                    addedEntity.State = EntityState.Added;
-                    context.SaveChanges();
-                }
-            }
-            else
-            {
-                Console.WriteLine("Hatalı bir giriş yaptınız.'\n'Araba ismi minimum 2 karakter olmalıdır.'\n'Araba günlük fiyatı 0'dan büyük olmalıdır.");
-            }
-        }
-
-        public void Delete(Car entity)
+        public List<CarDetailDto> GetCarDetails()
         {
             using (CarRentalContext context = new CarRentalContext())
             {
-                var deletedEntity = context.Entry(entity);
-                deletedEntity.State = EntityState.Deleted;
-                context.SaveChanges();
-            }
-        }
-
-        public void Update(Car entity)
-        {
-            using (CarRentalContext context = new CarRentalContext())
-            {
-                var updatedEntity = context.Entry(entity);
-                updatedEntity.State = EntityState.Modified;
-                context.SaveChanges();
-            }
-        }
-
-        public Car Get(Expression<Func<Car, bool>> filter)
-        {
-            using (CarRentalContext context = new CarRentalContext())
-            {
-                return context.Set<Car>().SingleOrDefault(filter);
-            } 
-        }
-
-        public List<Car> GetAll(Expression<Func<Car, bool>> filter = null)
-        {
-            using (CarRentalContext context = new CarRentalContext())
-            {
-                return filter == null 
-                    ? context.Set<Car>().ToList() 
-                    : context.Set<Car>().Where(filter).ToList();
-            }
+                var result = from c in context.Cars
+                             join cl in context.Colors
+                             on c.ColorId equals cl.ColorId
+                             join b in context.Brands
+                             on c.BrandId equals b.BrandId
+                             select new CarDetailDto
+                             {
+                                 BrandId = c.BrandId, ColorId = c.ColorId, CarId = c.CarId, CarName = c.CarName,
+                                 BrandName = b.BrandName, ColorName = cl.ColorName, DailyPrice = c.DailyPrice
+                             };
+                return result.ToList();
+            }    
         }
     }
 }
